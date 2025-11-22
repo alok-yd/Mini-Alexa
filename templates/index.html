@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini Alexa - Virtual Assistant</title>
+
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      background: #050816;
+      color: #f8f9fa;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 20px 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .assistant-container {
+      width: min(600px, 95%);
+      margin: 20px auto;
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .assistant-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .avatar-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #38bdf8, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 700;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+    }
+
+    .badge-live {
+      font-size: 0.72rem;
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+
+    .chat-box {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 16px;
+      padding: 12px;
+      height: 350px;
+      max-height: 60vh;
+      overflow-y: auto;
+      border: 1px solid rgba(75, 85, 99, 0.6);
+      margin-bottom: 14px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      display: flex;
+    }
+
+    .message.assistant {
+      justify-content: flex-start;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 80%;
+      border-radius: 14px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .assistant .bubble {
+      background: rgba(37, 99, 235, 0.18);
+      border: 1px solid rgba(59, 130, 246, 0.7);
+    }
+
+    .user .bubble {
+      background: rgba(15, 118, 110, 0.3);
+      border: 1px solid rgba(45, 212, 191, 0.7);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+      flex-wrap: nowrap;
+    }
+
+    .input-row input {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(75, 85, 99, 0.9);
+      color: #f9fafb;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .input-row input:focus {
+      box-shadow: 0 0 0 0.1rem rgba(56, 189, 248, 0.4);
+      border-color: rgba(56, 189, 248, 0.8);
+    }
+
+    .btn-mic.active {
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
+    }
+
+    small.hint {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .reminders-box {
+      margin-top: 12px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px dashed rgba(148, 163, 184, 0.4);
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .reminders-box h6 {
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+      color: #9ca3af;
+    }
+
+    .reminders-box ul {
+      padding-left: 18px;
+      margin: 0;
+      font-size: 0.8rem;
+    }
+
+    /* Send button spinner + loading state */
+    .btn-spinner {
+      display: none;
+      margin-left: 8px;
+      font-size: 0.95rem;
+      opacity: 0.95;
+    }
+
+    .btn.loading .btn-text { display: none; }
+    .btn.loading .btn-spinner { display: inline-block; }
+
+    /* Subtle transitions & animations for better UX */
+    .assistant-container {
+      transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease;
+      transform: translateY(6px);
+      opacity: 0;
+      animation: containerIn 320ms ease forwards;
+      animation-delay: 80ms;
+    }
+
+    @keyframes containerIn {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .message .bubble {
+      transition: transform 180ms cubic-bezier(.2,.9,.2,1), opacity 180ms ease, box-shadow 180ms ease;
+      transform: translateY(8px) scale(0.995);
+      opacity: 0;
+      will-change: transform, opacity;
+      animation: bubbleIn 220ms ease forwards;
+    }
+
+    @keyframes bubbleIn {
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .bubble {
+      box-shadow: 0 6px 12px rgba(2,6,23,0.35);
+    }
+
+    .input-row input,
+    .input-row button {
+      transition: box-shadow 140ms ease, transform 120ms ease, opacity 120ms ease;
+    }
+
+    .input-row input:focus {
+      transform: translateY(-1px);
+    }
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(2,6,23,0.28);
+    }
+
+    /* Respect reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      .assistant-container,
+      .message .bubble,
+      .input-row input,
+      .input-row button,
+      .btn {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .assistant-container {
+        padding: 14px;
+        border-radius: 12px;
+      }
+
+      .chat-box {
+        height: 55vh;
+        max-height: 55vh;
+        padding: 10px;
+      }
+
+      .assistant-header {
+        gap: 8px;
+      }
+
+      .avatar-circle {
+        width: 44px;
+        height: 44px;
+        font-size: 22px;
+      }
+
+      .input-row {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .input-row input {
+        flex: 1 1 100%;
+        width: 100%;
+      }
+
+      .input-row button {
+        flex: 0 0 auto;
+        width: 48px;
+        height: 44px;
+      }
+
+      .input-row button#sendBtn {
+        width: auto;
+        padding: 6px 12px;
+        align-self: center;
+      }
+
+      .reminders-box {
+        max-height: 120px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .assistant-container {
+        margin-top: 60px;
+      }
+      .chat-box {
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="assistant-container">
+    <div class="assistant-header">
+      <div class="avatar-circle">🧠</div>
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h5 class="mb-0">Mini Alexa</h5>
+          <span class="badge-live">● Online</span>
+        </div>
+        <small class="text-muted">Gemini-powered Voice + Chat Assistant</small>
+      </div>
+    </div>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="mb-2">
+      <small class="hint">
+        💡 Try: “What is black hole?”, “Play study lo-fi on YouTube”,
+        “Open WhatsApp”, “Remind me in 10 minutes to study”.
+      </small>
+    </div>
+
+    <div class="input-row">
+      <input
+        type="text"
+        id="userInput"
+        class="form-control"
+        placeholder="Type your question or command..."
+      />
+      <button id="sendBtn" class="btn btn-primary" aria-live="polite">
+        <span class="btn-text">Send</span>
+        <span class="btn-spinner" aria-hidden="true">⏳</span>
+      </button>
+      <button id="micBtn" class="btn btn-outline-danger btn-mic" title="Speak">
+        🎙
+      </button>
+    </div>
+
+    <div class="reminders-box mt-3" id="remindersBox">
+      <h6>⏰ Active Reminders (this tab)</h6>
+      <ul id="remindersList"></ul>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Load main.js via Flask-rendered url_for; if this file is opened directly
+       (not rendered by Flask) the src will still contain the Jinja marker
+       — detect that and replace with a working static path as a fallback. -->
+  <script id="main-js" src="{{ url_for('static', filename='main.js') }}"></script>
+  {% raw %}
+  <script>
+    (function() {
+      try {
+        const s = document.getElementById('main-js');
+        const src = s && s.getAttribute('src');
+        // If the template wasn't rendered by Flask the src will still contain '{{'
+        if (src && src.includes('{{')) {
+          // Replace with a sensible fallback path that most static servers use
+          s.setAttribute('src', '/static/main.js');
+          console.warn('Using fallback /static/main.js — consider running the Flask server and opening http://127.0.0.1:5000/');
+        }
+      } catch (e) {
+        console.warn('Error while applying main.js fallback', e);
+      }
+    })();
+  </script>
+  {% endraw %}
+</body>
+</html>
